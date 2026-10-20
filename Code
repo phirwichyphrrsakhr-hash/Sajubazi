@@ -1,149 +1,202 @@
-import datetime
-
-class SajuCalculator:
-    """
-    Korean Saju (사주팔자 / Four Pillars of Destiny) Engine
-    คำนวณ 4 เสาหลัก 8 อักษร ตามหลักโหราศาสตร์เกาหลี
-    """
-    def __init__(self):
-        # 10 Heavenly Stems (천간 / กิ่งฟ้า)
-        self.STEMS = [
-            {"hanja": "甲", "kr": "갑 (Gap)", "element": "ไม้ (Wood)", "yin_yang": "Yang (+)"},
-            {"hanja": "乙", "kr": "을 (Eul)", "element": "ไม้ (Wood)", "yin_yang": "Yin (-)"},
-            {"hanja": "丙", "kr": "병 (Byeong)", "element": "ไฟ (Fire)", "yin_yang": "Yang (+)"},
-            {"hanja": "丁", "kr": "정 (Jeong)", "element": "ไฟ (Fire)", "yin_yang": "Yin (-)"},
-            {"hanja": "戊", "kr": "무 (Mu)", "element": "ดิน (Earth)", "yin_yang": "Yang (+)"},
-            {"hanja": "己", "kr": "기 (Gi)", "element": "ดิน (Earth)", "yin_yang": "Yin (-)"},
-            {"hanja": "庚", "kr": "경 (Gyeong)", "element": "ทอง (Metal)", "yin_yang": "Yang (+)"},
-            {"hanja": "辛", "kr": "신 (Sin)", "element": "ทอง (Metal)", "yin_yang": "Yin (-)"},
-            {"hanja": "壬", "kr": "임 (Im)", "element": "น้ำ (Water)", "yin_yang": "Yang (+)"},
-            {"hanja": "癸", "kr": "계 (Gye)", "element": "น้ำ (Water)", "yin_yang": "Yin (-)"}
-        ]
-
-        # 12 Earthly Branches (지시 / ก้านดิน - นักษัตร)
-        self.BRANCHES = [
-            {"hanja": "子", "kr": "자 (Ja / ชวด)", "animal": "หนู", "element": "น้ำ (Water)"},
-            {"hanja": "丑", "kr": "축 (Chuk / ฉลู)", "animal": "วัว", "element": "ดิน (Earth)"},
-            {"hanja": "寅", "kr": "인 (In / ขาล)", "animal": "เสือ", "element": "ไม้ (Wood)"},
-            {"hanja": "卯", "kr": "묘 (Myo / เถาะ)", "animal": "กระต่าย", "element": "ไม้ (Wood)"},
-            {"hanja": "辰", "kr": "진 (Jin / มะโรง)", "animal": "มังกร", "element": "ดิน (Earth)"},
-            {"hanja": "巳", "kr": "사 (Sa / มะเส็ง)", "animal": "งู", "element": "ไฟ (Fire)"},
-            {"hanja": "午", "kr": "오 (O / มะเมีย)", "animal": "ม้า", "element": "ไฟ (Fire)"},
-            {"hanja": "未", "kr": "미 (Mi / มะแม)", "animal": "แพะ", "element": "ดิน (Earth)"},
-            {"hanja": "申", "kr": "신 (Sin / วอก)", "animal": "ลิง", "element": "ทอง (Metal)"},
-            {"hanja": "酉", "kr": "유 (Yu / ระกา)", "animal": "ไก่", "element": "ทอง (Metal)"},
-            {"hanja": "戌", "kr": "술 (Sul / จอ)", "animal": "สุนัข", "element": "ดิน (Earth)"},
-            {"hanja": "亥", "kr": "해 (Hae / ปีกุน)", "animal": "หมู", "element": "น้ำ (Water)"}
-        ]
-
-        # พิกัดลองจิจูดของสถานที่ยอดฮิต เพื่อปรับเวลาสุริยคติแท้จริง (True Solar Time Adjustment)
-        self.LONGITUDE_MAP = {
-            "seoul": 126.9780,
-            "bangkok": 100.5018,
-            "tokyo": 139.6917,
-            "beijing": 116.4074,
-            "london": -0.1278,
-            "new york": -74.0060
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saju Minimalist - วิเคราะห์ดวงชะตา 4 เสาหลัก</title>
+    <!-- Google Fonts: Prompt & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Prompt:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f6;
+            --card-bg: #ffffff;
+            --text-main: #2b2b2b;
+            --text-muted: #777777;
+            --accent: #d4a373;
+            --accent-hover: #bc8a5f;
+            --border-color: #eeebe3;
+            --radius: 16px;
         }
 
-    def _adjust_solar_time(self, dt, city_name):
-        """คำนวณปรับเวลาตามพิกัดสถานที่เกิด (Longitude Offset) เพื่อความแม่นยำ 100%"""
-        city_lower = city_name.lower().strip()
-        if city_lower in self.LONGITUDE_MAP:
-            lon = self.LONGITUDE_MAP[city_lower]
-            # มาตรฐานเวลาฐาน (Standard Meridian offset)
-            std_meridian = round(lon / 15.0) * 15
-            time_diff_minutes = (lon - std_meridian) * 4
-            return dt + datetime.timedelta(minutes=time_diff_minutes)
-        return dt
-
-    def analyze(self, year, month, day, hour, minute, location="Seoul"):
-        raw_dt = datetime.datetime(year, month, day, hour, minute)
-        adjusted_dt = self._adjust_solar_time(raw_dt, location)
-
-        # 1. Year Pillar (연주)
-        y_stem_idx = (adjusted_dt.year - 4) % 10
-        y_branch_idx = (adjusted_dt.year - 4) % 12
-
-        # 2. Month Pillar (월주)
-        m_branch_idx = (adjusted_dt.month + 1) % 12
-        m_stem_idx = (y_stem_idx * 2 + adjusted_dt.month) % 10
-
-        # 3. Day Pillar (일주) - Julian Day Number Algorithm
-        a = (14 - adjusted_dt.month) // 12
-        y = adjusted_dt.year + 4800 - a
-        m = adjusted_dt.month + 12 * a - 3
-        jdn = adjusted_dt.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100 + y // 400 - 32045
-        
-        d_stem_idx = (jdn - 1) % 10
-        d_branch_idx = (jdn + 1) % 12
-
-        # 4. Hour Pillar (시주)
-        h_branch_idx = ((adjusted_dt.hour + 1) % 24) // 2
-        h_stem_idx = (d_stem_idx * 2 + h_branch_idx) % 10
-
-        # สร้างข้อมูลโครงสร้าง 4 เสา
-        pillars = {
-            "Year": {"stem": self.STEMS[y_stem_idx], "branch": self.BRANCHES[y_branch_idx], "name_kr": "연주 (เสาปีเกิด)"},
-            "Month": {"stem": self.STEMS[m_stem_idx], "branch": self.BRANCHES[m_branch_idx], "name_kr": "월주 (เสาเดือนเกิด)"},
-            "Day": {"stem": self.STEMS[d_stem_idx], "branch": self.BRANCHES[d_branch_idx], "name_kr": "일주 (เสาวันเกิด - ตัวตนหลัก)"},
-            "Hour": {"stem": self.STEMS[h_stem_idx], "branch": self.BRANCHES[h_branch_idx], "name_kr": "시주 (เสายามเกิด)"}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Prompt', 'Outfit', sans-serif;
         }
 
-        self._print_result(raw_dt, adjusted_dt, location, pillars)
-
-    def _print_result(self, raw_dt, adjusted_dt, location, pillars):
-        day_master = pillars["Day"]["stem"]
-        day_branch = pillars["Day"]["branch"]
-
-        print("=" * 60)
-        print("   ✨ 🔮 KOREAN SAJU READING (사주팔자) 🔮 ✨   ")
-        print("       — Minimal & Modern Gen-Z Edition —       ")
-        print("=" * 60)
-        print(f" 📅 วันเวลาเกิดที่ป้อน: {raw_dt.strftime('%Y-%m-%d %H:%M')}")
-        print(f" 📍 สถานที่เกิด: {location.title()}")
-        print(f" ⏰ เวลาสุริยคติปรับแล้ว (True Solar Time): {adjusted_dt.strftime('%H:%M น.')}")
-        print("-" * 60)
-        print(" 🏛️ [ ผัง 4 เสาหลัก 8 อักษร / Four Pillars Chart ]\n")
-        
-        for key, item in pillars.items():
-            s = item["stem"]
-            b = item["branch"]
-            print(f" • {item['name_kr']:<28} : {s['hanja']} {b['hanja']}  |  {s['kr']} x {b['kr']} ({b['animal']})")
-
-        print("-" * 60)
-        print(" 🌟 [ MAIN CHARACTER VIBE CHECK (เจาะลึกตัวตนหลัก) ]")
-        print(f" • Day Master (일간) : {day_master['hanja']} — {day_master['kr']}")
-        print(f" • ธาตุประจำตัว    : {day_master['element']} ({day_master['yin_yang']})")
-        print(f" • คู่พลังงานฐาน    : {day_branch['kr']} ({day_branch['element']})")
-        print("\n 💡 คำวิเคราะห์สไตล์ Gen Z:")
-        
-        # บทวิเคราะห์จำแนกตามธาตุตัวตนหลัก (Day Master Element)
-        element_vibes = {
-            "ไม้ (Wood)": "คุณมี Main Character Energy สายเติบโต! หัวไว เรียนรู้เร็ว ไอเดียพุ่งกระฉูดตลอดเวลา ยืดหยุ่นเก่งและจริงใจกับความรู้สึกตัวเองสุดๆ",
-            "ไฟ (Fire)": "ออร่าความปังเต็มสิบ! มีเสน่ห์ โดดเด่น กระตือรือร้น สื่อสารเก่ง นำเทรนด์เก่ง ชัดเจนและจริงใจ ใครอยู่ใกล้ก็ได้รับพลังงานบวก",
-            "ดิน (Earth)": "สายสตรอง น่าเชื่อถือ และเซฟโซนสุดๆ ใจเย็น อดทน วางแผนชีวิตเก่ง เป็นที่พักพิงและเป็นที่ปรึกษาอันดับหนึ่งของเพื่อนๆ",
-            "ทอง (Metal)": "สายชิค สไตล์ชัด มีระเบียบวินัย เด็ดขาด ตรงไปตรงมา รักความยุติธรรม เป็นคนเป๊ะปัง ตัดสินใจคมกริบคมเฉียบ",
-            "น้ำ (Water)": "ฉลาดลึกซึ้ง สัญชาตญาณดีเยี่ยม ปรับตัวเข้ากับทุกสถานการณ์ได้เนียนกริ๊บ มีความสุนทรีย์ มีเซนส์ทางศิลปะหรืออารมณ์ที่ละเอียดอ่อน"
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-weight: 500;
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 35px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: #fcfcfb;
+            font-size: 1rem;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        button.btn-submit {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--text-main);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        button.btn-submit:hover {
+            background-color: var(--accent);
+        }
+
+        /* Result Section */
+        #resultSection {
+            display: none;
+            margin-top: 30px;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 25px 0;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .pillar-card {
+            background: #faf9f6;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+        }
+
+        .pillar-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .pillar-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .analysis-box {
+            background: #faf9f6;
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .analysis-box h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 480px) {
+            .pillars-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Saju Analysis</h1>
+        <p class="subtitle">ระบบวิเคราะห์ดวงชะตา 4 เสาหลัก (Four Pillars of Destiny)</p>
+
         
-        print(f"   ⇒ {element_vibes.get(day_master['element'])}")
-        print("=" * 60)
-
-
-# ==========================================
-# 🚀 วิธีใช้งาน: ใส่ข้อมูลวันเกิดตรงนี้แล้วรันได้เลย!
-# ==========================================
-if __name__ == "__main__":
-    app = SajuCalculator()
-    
-    # ตัวอย่าง: เกิดวันที่ 17 พฤศจิกายน ค.ศ. 1998 เวลา 14:30 น. ที่ Seoul
-    # สามารถเปลี่ยนเมืองเป็น 'Bangkok', 'Tokyo', 'Beijing', 'New York' ได้
-    app.analyze(
-        year=1998, 
-        month=11, 
-        day=17, 
-        hour=14, 
-        minute=30, 
-        location="Seoul"
-    )
